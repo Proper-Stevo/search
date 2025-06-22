@@ -1,23 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { ContactCard } from './ContactCard';
 import { ContactSearchService } from './ContactSearchService';
 
-// Search Bar Component
+// Search Bar Component (live search)
 const SearchBar = ({ onSearch, loading }) => {
   const [query, setQuery] = useState('');
 
-  const handleSubmit = () => {
-    if (query.trim()) {
-      onSearch(query.trim());
-    }
-  };
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (query.trim()) {
+        onSearch(query.trim());
+      }
+    }, 500); // adjust debounce delay as needed
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSubmit();
-    }
-  };
+    return () => clearTimeout(delayDebounce);
+  }, [query, onSearch]);
 
   return (
     <div className="mb-8">
@@ -29,20 +27,10 @@ const SearchBar = ({ onSearch, loading }) => {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyPress={handleKeyPress}
           placeholder="Search contacts by name, company, email, or any other details..."
           className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm placeholder-gray-500"
           disabled={loading}
         />
-        <button
-          onClick={handleSubmit}
-          disabled={loading || !query.trim()}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center"
-        >
-          <div className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:cursor-not-allowed">
-            {loading ? 'Searching...' : 'Search'}
-          </div>
-        </button>
       </div>
     </div>
   );
@@ -98,7 +86,7 @@ const App = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState('');
-  
+
   const searchService = new ContactSearchService();
 
   const handleSearch = async (query) => {
@@ -108,14 +96,14 @@ const App = () => {
     setHasSearched(true);
 
     const result = await searchService.searchContacts(query);
-    
+
     if (result.ok) {
       setContacts(result.data.contacts || []);
     } else {
       setError(result.error || 'Search failed');
       setContacts([]);
     }
-    
+
     setLoading(false);
   };
 
@@ -152,14 +140,12 @@ const App = () => {
         {/* Results Section */}
         <div className="space-y-4">
           {loading ? (
-            // Loading state
             <>
               <LoadingCard />
               <LoadingCard />
               <LoadingCard />
             </>
           ) : contacts.length > 0 ? (
-            // Results
             <>
               <div className="mb-4">
                 <p className="text-sm text-gray-600">
@@ -171,7 +157,6 @@ const App = () => {
               ))}
             </>
           ) : (
-            // Empty state
             <EmptyState hasSearched={hasSearched} searchQuery={searchQuery} />
           )}
         </div>
